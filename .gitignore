@@ -3,7 +3,6 @@
 *.pyc
 runs/
 *.mp4
-*.pt
 __pycache__/
 *.pkl
 *.jpg

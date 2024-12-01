@@ -4,6 +4,8 @@ project = rf.workspace("projects-8f38g").project("player-detection-b6ww5") # fin
 version = project.version(2)
 dataset = version.download("yolov11")
 
+# puck model dataset url
+# https://universe.roboflow.com/projects-8f38g/player-detection-b6ww5/dataset/2
 
 # jersey model dataset url
 # https://universe.roboflow.com/fastdeploy/-923m4/dataset/1
