@@ -6,4 +6,3 @@ runs/
 __pycache__/
 *.pkl
 *.jpg
-*.png

@@ -60,12 +60,35 @@ This system analyzes ice hockey match videos to:
 ✅ Team differentiation </br>
 ✅ Basic player tracking </br>
 ✅ Jersey number detection (with limitations) </br>
-⚠️ Partial puck tracking capability </br>
+⚠️ Partial puck tracking capability 
+
+### Output video with fine-tuned puck model
+![Output video with fine-tuned puck model](/results/output_gif.gif)
+
+*Video demonstration showing real-time player and referee detection along with puck*
+
+### Jersey Number Detection Results
+<table>
+  <tr>
+    <td><img src="/results/jersey_detection1.png" alt="Jersey Number Detection 1"/></td>
+    <td><img src="/results/jersey_detection2.png" alt="Jersey Number Detection 2"/></td>
+    <td><img src="/results/jersey_detection3.png" alt="Jersey Number Detection 3"/></td>
+  </tr>
+  <tr>
+    <td><i>Player #87 successfully identified during gameplay</i></td>
+    <td><i>Multiple jersey numbers detected simultaneously</i></td>
+    <td><i>Jersey number recognition under different lighting conditions</i></td>
+  </tr>
+</table>
 
 ### Limitations
 1. **Puck Detection**
    - Inconsistent tracking due to small size and rapid movement
    - Need for specialized training data
+
+   ![Puck Detection Example](/results/visible_puck_ss.png)
+   *Example frame showing puck detection (highlighted in green) during gameplay*
+   
 
 2. **Jersey Number Recognition**
    - Dependent on player orientation

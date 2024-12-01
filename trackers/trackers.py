@@ -93,7 +93,7 @@ class Tracker:
                 for frame_detection in detection_supervision:
                     bbox = frame_detection[0].tolist()
                     cls_id = frame_detection[3]
-        
+
                     if "puck" in cls_names_inv and cls_id == cls_names_inv["puck"]:
                         tracks["puck"][frame_num][1] = {"bbox": bbox}
 
@@ -203,7 +203,7 @@ class Tracker:
             )
 
         return frame
-    def draw_traingle(self, frame, bbox, color):
+    def draw_triangle(self, frame, bbox, color):
         y = int(bbox[1])
         x, _ = get_center_of_bbox(bbox)
 
@@ -216,6 +216,20 @@ class Tracker:
         )
         cv2.drawContours(frame, [triangle_points], 0, color, cv2.FILLED)
         cv2.drawContours(frame, [triangle_points], 0, (0, 0, 0), 2)
+
+        # Add "puck" text above the triangle
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 0.5
+        thickness = 2
+        text = "Puck"
+        
+        # Get text size for centering
+        (text_width, text_height), _ = cv2.getTextSize(text, font, font_scale, thickness)
+        text_x = int(x - text_width // 2)
+        text_y = int(y - 30)  # Position above triangle
+        
+        # Draw text with white background for better visibility
+        cv2.putText(frame, text, (text_x, text_y), font, font_scale, color, thickness)
 
         return frame
 
@@ -241,7 +255,7 @@ class Tracker:
                 )
 
                 if player.get("has_ball", False):
-                    frame = self.draw_traingle(frame, player["bbox"], (0, 0, 255))
+                    frame = self.draw_triangle(frame, player["bbox"], (0, 0, 255))
 
             # Draw Referee
             for _, referee in referee_dict.items():
@@ -256,7 +270,7 @@ class Tracker:
             # Draw puck 
             if self.is_puck_detection:
                 for _, puck in puck_dict.items():
-                    frame = self.draw_traingle(frame, puck["bbox"], (0, 255, 0))
+                    frame = self.draw_triangle(frame, puck["bbox"], (0, 255, 0))
 
             output_video_frames.append(frame)
 
