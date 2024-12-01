@@ -1,9 +1,16 @@
 from sklearn.cluster import KMeans
+import easyocr
+import cv2
+from ultralytics import YOLO
+import supervision as sv
 
 class TeamAssigner:
     def __init__(self):
         self.team_colors = {}
         self.player_team_dict = {}
+        self.player_number_dict = {}
+        self.reader = easyocr.Reader(['en'])
+        self.jersey_model = YOLO("models/jersey_model.pt")
     
     def get_clustering_model(self,image):
         # Reshape the image to 2D array
@@ -71,3 +78,59 @@ class TeamAssigner:
         self.player_team_dict[player_id] = team_id
 
         return team_id
+
+    def get_player_jersey_number(self, frame, bbox, all_player_jersey_numbers):
+        """
+        Detect jersey number from player bbox using both posture detection and YOLO model.
+        Returns None if no reliable detection.
+        """
+        # Convert jersey numbers to integers
+        all_player_jersey_numbers = [int(jersey_number) for jersey_number in all_player_jersey_numbers]
+        
+        # Crop player image
+        player_img = frame[int(bbox[1]):int(bbox[3]), int(bbox[0]):int(bbox[2])]
+        
+        # Check player posture first
+        gray = cv2.cvtColor(player_img, cv2.COLOR_BGR2GRAY)
+        _, binary = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+        contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        if not contours:
+            return None
+            
+        # Get the largest contour
+        player_contour = max(contours, key=cv2.contourArea)
+        x, y, w, h = cv2.boundingRect(player_contour)
+        
+        # Calculate aspect ratio to determine posture
+        aspect_ratio = float(w) / h
+        
+        # Only proceed with jersey detection if player is facing front/back
+        if aspect_ratio >= 0.65:  # Not front/back facing
+            return None
+        
+        # Use YOLO model for jersey number detection
+        detections = self.jersey_model.predict(player_img)
+        
+        for detection in detections:
+            detection_supervision = sv.Detections.from_ultralytics(detection)
+            
+            # Get detected digits and their x-coordinates
+            digits = []
+            for i in range(len(detection_supervision.xyxy)):
+                x1 = detection_supervision.xyxy[i][0]  # x coordinate of left side
+                digit = detection_supervision.data['class_name'][i]
+                digits.append((x1, digit))
+            
+            # Sort digits by x-coordinate (left to right)
+            digits.sort(key=lambda x: x[0])
+            
+            # Combine digits into number
+            if digits:
+                predicted_number = int(''.join(digit for _, digit in digits))
+                
+                # If predicted number is in the allowed list, return it
+                if predicted_number in all_player_jersey_numbers:
+                    return predicted_number
+        
+        return None
