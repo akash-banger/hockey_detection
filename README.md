@@ -74,11 +74,6 @@ This system analyzes ice hockey match videos to:
     <td><img src="/results/jersey_detection2.png" alt="Jersey Number Detection 2"/></td>
     <td><img src="/results/jersey_detection3.png" alt="Jersey Number Detection 3"/></td>
   </tr>
-  <tr>
-    <td><i>Player #87 successfully identified during gameplay</i></td>
-    <td><i>Multiple jersey numbers detected simultaneously</i></td>
-    <td><i>Jersey number recognition under different lighting conditions</i></td>
-  </tr>
 </table>
 
 ### Limitations
