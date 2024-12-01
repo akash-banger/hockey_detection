@@ -9,10 +9,10 @@ import numpy as np
 
 
 class Tracker:
-    def __init__(self, model_path: str):
+    def __init__(self, model_path: str, is_puck_detection: bool = False):
         self.model = YOLO(model_path)
         self.tracker = sv.ByteTrack()
-
+        self.is_puck_detection = is_puck_detection
     def add_position_to_tracks(sekf, tracks):
         for object, object_tracks in tracks.items():
             for frame_num, track in enumerate(object_tracks):
@@ -56,8 +56,10 @@ class Tracker:
             return tracks
 
         detections = self.detect_frames(frames)
-
-        tracks = {"players": [], "referees": [], "puck": []}
+        if self.is_puck_detection:
+            tracks = {"players": [], "referees": [], "puck": []}
+        else:
+            tracks = {"players": [], "referees": []}
 
         for frame_num, detection in enumerate(detections):
             cls_names = detection.names
@@ -73,7 +75,8 @@ class Tracker:
 
             tracks["players"].append({})
             tracks["referees"].append({})
-            tracks["puck"].append({})
+            if self.is_puck_detection:
+                tracks["puck"].append({})
 
             for frame_detection in detection_with_tracks:
                 bbox = frame_detection[0].tolist()
@@ -86,12 +89,13 @@ class Tracker:
                 if "referee" in cls_names_inv and cls_id == cls_names_inv["referee"]:
                     tracks["referees"][frame_num][track_id] = {"bbox": bbox}
 
-            for frame_detection in detection_supervision:
-                bbox = frame_detection[0].tolist()
-                cls_id = frame_detection[3]
-
-                if "puck" in cls_names_inv and cls_id == cls_names_inv["puck"]:
-                    tracks["puck"][frame_num][1] = {"bbox": bbox}
+            if self.is_puck_detection:
+                for frame_detection in detection_supervision:
+                    bbox = frame_detection[0].tolist()
+                    cls_id = frame_detection[3]
+        
+                    if "puck" in cls_names_inv and cls_id == cls_names_inv["puck"]:
+                        tracks["puck"][frame_num][1] = {"bbox": bbox}
 
         if stub_path is not None:
             with open(stub_path, "wb") as f:
@@ -104,6 +108,7 @@ class Tracker:
         x_center, _ = get_center_of_bbox(bbox)
         width = get_bbox_width(bbox)
 
+        # Draw the ellipse
         cv2.ellipse(
             frame,
             center=(x_center, y2),
@@ -116,60 +121,86 @@ class Tracker:
             lineType=cv2.LINE_4,
         )
 
-        # Calculate text dimensions and positions
         font = cv2.FONT_HERSHEY_SIMPLEX
         font_scale = 0.5
         thickness = 2
-        
-        # Determine text content and measurements
-        if jersey_number and name:
-            text = f"#{jersey_number} {name}"
-        elif jersey_number:
-            text = f"#{jersey_number}"
-        elif name:
-            text = name
-        else:
-            text = "Player"  # Default text when no name or number is available
-        
-        (text_width, text_height), _ = cv2.getTextSize(text, font, font_scale, thickness)
-        
-        # Calculate background rectangle dimensions with padding
         padding = 5
-        rect_width = text_width + (padding * 2)
-        rect_height = text_height + (padding * 2)
+
+        # Draw role (Player/Referee) above ellipse
+        role_text = "Referee" if name == "Referee" else "Player"
+        (role_width, role_height), _ = cv2.getTextSize(role_text, font, font_scale, thickness)
         
-        # Position the text box above the ellipse
-        x_text = x_center - (rect_width // 2)
-        y_text = y2 - 25  # Offset above the ellipse
+        role_rect_width = role_width + (padding * 2)
+        role_rect_height = role_height + (padding * 2)
         
-        # Draw background rectangle
+        role_x = x_center - (role_rect_width // 2)
+        role_y = y2 - 25  # Just above ellipse
+
+        # Draw role background and text
         cv2.rectangle(
             frame,
-            (int(x_text), int(y_text - rect_height)),
-            (int(x_text + rect_width), int(y_text)),
+            (int(role_x), int(role_y - role_rect_height)),
+            (int(role_x + role_rect_width), int(role_y)),
             color,
             cv2.FILLED,
         )
-        
-        # Add a black border around the rectangle
         cv2.rectangle(
             frame,
-            (int(x_text), int(y_text - rect_height)),
-            (int(x_text + rect_width), int(y_text)),
+            (int(role_x), int(role_y - role_rect_height)),
+            (int(role_x + role_rect_width), int(role_y)),
             (0, 0, 0),
             1,
         )
-        
-        # Draw text
         cv2.putText(
             frame,
-            text,
-            (int(x_text + padding), int(y_text - padding)),
+            role_text,
+            (int(role_x + padding), int(role_y - padding)),
             font,
             font_scale,
-            (0, 0, 0),  # Black text
+            (0, 0, 0),
             thickness,
         )
+
+        # Draw name and jersey number if available
+        if (jersey_number or name) and name != "Referee":
+            if jersey_number and name:
+                detail_text = f"#{jersey_number} {name}"
+            elif jersey_number:
+                detail_text = f"#{jersey_number}"
+            else:
+                detail_text = name
+
+            (detail_width, detail_height), _ = cv2.getTextSize(detail_text, font, font_scale, thickness)
+            detail_rect_width = detail_width + (padding * 2)
+            detail_rect_height = detail_height + (padding * 2)
+            
+            detail_x = x_center - (detail_rect_width // 2)
+            detail_y = y2 - 25 - role_rect_height - 5  # Above role text with small gap
+
+            # Draw detail background and text
+            cv2.rectangle(
+                frame,
+                (int(detail_x), int(detail_y - detail_rect_height)),
+                (int(detail_x + detail_rect_width), int(detail_y)),
+                color,
+                cv2.FILLED,
+            )
+            cv2.rectangle(
+                frame,
+                (int(detail_x), int(detail_y - detail_rect_height)),
+                (int(detail_x + detail_rect_width), int(detail_y)),
+                (0, 0, 0),
+                1,
+            )
+            cv2.putText(
+                frame,
+                detail_text,
+                (int(detail_x + padding), int(detail_y - padding)),
+                font,
+                font_scale,
+                (0, 0, 0),
+                thickness,
+            )
 
         return frame
     def draw_traingle(self, frame, bbox, color):
@@ -194,7 +225,8 @@ class Tracker:
             frame = frame.copy()
 
             player_dict = tracks["players"][frame_num]
-            puck_dict = tracks["puck"][frame_num]
+            if self.is_puck_detection:
+                puck_dict = tracks["puck"][frame_num]
             referee_dict = tracks["referees"][frame_num]
 
             # Draw Players
@@ -221,9 +253,10 @@ class Tracker:
                     name="Referee",
                 )
 
-            # Draw ball
-            for _, puck in puck_dict.items():
-                frame = self.draw_traingle(frame, puck["bbox"], (0, 255, 0))
+            # Draw puck 
+            if self.is_puck_detection:
+                for _, puck in puck_dict.items():
+                    frame = self.draw_traingle(frame, puck["bbox"], (0, 255, 0))
 
             output_video_frames.append(frame)
 

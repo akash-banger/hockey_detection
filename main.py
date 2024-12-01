@@ -5,7 +5,9 @@ from metadata import players_metadata
 import pickle
 import os
 def main():
-    # Create players dictionary mapping jersey numbers to names
+    puck_model_path = "models/with_puck_model.pt"
+    player_referee_model_path = "models/player_referee_model.pt"
+    
     players_dict = {}
     for team in players_metadata['teams'].values():
         for jersey_number, player_info in team['players'].items():
@@ -16,12 +18,12 @@ def main():
     all_jersey_numbers = list(players_dict.keys())
 
     frames = get_video_frames('input_videos/short_test_video.mp4')
-    tracker = Tracker("models/final_model.pt")
-    tracks = tracker.get_object_tracks(frames, read_from_stub=True, stub_path='stubs/stub_tracks_test.pkl')
+    tracker = Tracker(player_referee_model_path, is_puck_detection=False)
+    tracks = tracker.get_object_tracks(frames, read_from_stub=True, stub_path='stubs/stub_tracks_test_2.pkl')
     team_assigner = TeamAssigner()
     
-    if os.path.exists('stubs/tracks_with_teams_test.pkl'):
-        with open('stubs/tracks_with_teams_test.pkl', 'rb') as f:
+    if os.path.exists('stubs/tracks_with_teams_test_2.pkl'):
+        with open('stubs/tracks_with_teams_test_2.pkl', 'rb') as f:
             tracks = pickle.load(f)
     else:
         # Assign Player Teams
@@ -37,11 +39,11 @@ def main():
                 tracks['players'][frame_num][player_id]['team_color'] = team_assigner.team_colors[team]
     
         # Save tracks after team assignment
-        with open('stubs/tracks_with_teams_test.pkl', 'wb') as f:
+        with open('stubs/tracks_with_teams_test_2.pkl', 'wb') as f:
             pickle.dump(tracks, f)
     
-    if os.path.exists('stubs/tracks_with_teams_and_jerseys_test.pkl'):
-        with open('stubs/tracks_with_teams_and_jerseys_test.pkl', 'rb') as f:
+    if os.path.exists('stubs/tracks_with_teams_and_jerseys_test_2.pkl'):
+        with open('stubs/tracks_with_teams_and_jerseys_test_2.pkl', 'rb') as f:
             tracks = pickle.load(f)
     else:
         for frame_num, player_track in enumerate(tracks['players']):
@@ -55,11 +57,11 @@ def main():
                     tracks['players'][frame_num][player_id]['name'] = players_dict[str(jersey_number)]
     
         # Save tracks after jersey number assignment
-        with open('stubs/tracks_with_teams_and_jerseys_test.pkl', 'wb') as f:
+        with open('stubs/tracks_with_teams_and_jerseys_test_2.pkl', 'wb') as f:
             pickle.dump(tracks, f)
     
     output_video_frames = tracker.draw_annotations(frames, tracks)
-    save_video_from_frames(output_video_frames, 'output_videos/output_video_test.mp4')
+    save_video_from_frames(output_video_frames, 'output_videos/output_video_test_2.mp4')
 
 if __name__ == '__main__':
     main()
