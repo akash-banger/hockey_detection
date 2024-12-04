@@ -1,4 +1,4 @@
-# Ice Hockey Match Analysis System | Assignment | STEALTH MODE
+# Ice Hockey Match Analysis System
 Computer vision system for player detection, tracking, and identification in ice hockey matches.
 
 ## Table of Contents
